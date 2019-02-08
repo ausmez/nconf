@@ -154,7 +154,7 @@ echo '</table>';
 
 echo '</div>'; // hidden div on loading
 
-mysql_close($dbh);
+mysqli_close($GLOBALS['dbh']);
 require_once 'include/foot.php';
 
 ?>

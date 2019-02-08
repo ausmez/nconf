@@ -326,18 +326,9 @@ if ($xmode == "nagiosview"){
         generate_tree($id);
     }
     
-
-    mysql_close($dbh);
+    mysqli_close($GLOBALS['dbh']);
     require_once 'include/foot.php';
 
 }
-
-
-
-
-
-
-
-
 
 ?>

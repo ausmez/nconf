@@ -128,7 +128,7 @@ echo '      </td>
     </table>
 ';
 
-mysql_close($dbh);
+mysqli_close($GLOBALS['dbh']);
 
 require_once 'include/foot.php';
 ?>

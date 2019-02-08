@@ -313,6 +313,6 @@ echo '
     </div>';
 
 
-mysql_close($dbh);
+mysqli_close($GLOBALS['dbh']);
 require_once 'include/foot.php';
 ?>
