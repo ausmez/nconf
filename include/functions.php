@@ -68,8 +68,7 @@ function escape_string($string){
     }
     
     # Make a safe string
-    $dbh = $GLOBALS['dbh'];
-    $escaped_string = mysqli_real_escape_string( $dbh, $string );
+    $escaped_string = mysqli_real_escape_string( $GLOBALS['dbh'], $string );
     return $escaped_string;
 }
 
@@ -1013,8 +1012,7 @@ function db_handler($query, $output = "result", $debug_title = "query"){
     if ( (DB_NO_WRITES == 1) AND ( !preg_match("/^SELECT/i", $query) ) ){
         message ('INFO', "DB_NO_WRITES activated, no deletions or modifications will be performed");
     }else{
-        $dbh = $GLOBALS['dbh'];
-        $result = mysqli_query($dbh, $query);
+        $result = mysqli_query($GLOBALS['dbh'], $query);
         // new DEBUG output
         $debug_query        = NConf_HTML::text_converter("sql_uppercase", $query);
         $debug_query_output = NConf_HTML::swap_content($debug_query, 'Query', FALSE, FALSE);
@@ -1137,7 +1135,7 @@ function db_handler($query, $output = "result", $debug_title = "query"){
 
         }else{
             // makes an open debug entry with mysqli_error info
-            $debug_entry = NConf_HTML::swap_content($debug_query_output.'<br><b>mysql error:</b>'.mysqli_error(), '<b class="attention" >SQL</b> '.$debug_title, TRUE, FALSE, 'debbug_query color_warning');
+            $debug_entry = NConf_HTML::swap_content($debug_query_output.'<br><b>mysql error:</b>'.mysqli_error($GLOBALS['dbh']), '<b class="attention" >SQL</b> '.$debug_title, TRUE, FALSE, 'debbug_query color_warning');
             NConf_DEBUG::set($debug_entry, 'DEBUG');
         }
 

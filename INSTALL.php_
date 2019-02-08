@@ -44,7 +44,6 @@ if ( ($step == 2 AND $_POST["submit"] != "Back") AND !($db_check == "ok") ){
     $step = 1;
 }
 
-
 # define installation/configuration
 $_SESSION["install"] = TRUE;
 require_once 'include/head.php';
@@ -240,7 +239,7 @@ function write_config($file, $replacers, $special = ''){
         #write to file
         if ( fwrite($fh, $new_config) == FALSE){
             # could not write to file, put out config code on page
-            message($info, "The config directory and all its content must be writable for your webserver user", "overwrite");
+            message($info, "The config directory and all its content must be writable for your webserver user (".posix_getpwuid(posix_geteuid())['name'].")", "overwrite");
             message($error, "Could not write config file ($file), please change the <b>bold lines</b> manually or remotely upload the file into the config directory");
             return $log;
         }else{
@@ -271,8 +270,8 @@ function parse_mysql_dump($url){
             if(preg_match('/;[\s]*$/', $sql_line)){
               $result = db_handler($query, 'insert', 'running sql statement');
               if (!$result){
-                $sqlErrorCode = mysqli_errno();
-                $sqlErrorText = mysqli_error();
+                $sqlErrorCode = mysqli_errno($GLOBALS['dbh']);
+                $sqlErrorText = mysqli_error($GLOBALS['dbh']);
                 NConf_DEBUG::set($sqlErrorCode, '', $sqlErrorText);
               }
               $query = "";
@@ -368,8 +367,8 @@ if ($step == 0){
     }
 
     # php-mysql support
-    $mysql_status = function_exists('mysql_connect');
-    if (!$mysql_status) message ($error, 'Could not find function "mysql_connect()"<br>You must configure PHP with mysql support.');
+    $mysql_status = function_exists('mysqli_connect');
+    if (!$mysql_status) message ($error, 'Could not find function "mysqli_connect()"<br>You must configure PHP with mysql support.');
     echo table_row_check('PHP-MySQL support', $mysql_status);
 
     # perl version
@@ -399,10 +398,10 @@ if ($step == 0){
     if ($db_check !== FALSE ){
         echo table_row_description('Checks', '');
         if (function_exists('mysqli_connect')){
-            $dbh = @mysqli_connect(check_session_value("DBHOST"),check_session_value("DBUSER"),check_session_value("DBPASS"),check_session_value("DBNAME"));
-            if (!$dbh){
+            $GLOBALS['dbh'] = @mysqli_connect(check_session_value("DBHOST"),check_session_value("DBUSER"),check_session_value("DBPASS"),check_session_value("DBNAME"));
+            if (!$GLOBALS['dbh']){
                 # unfortunately mysql_error wont give information about last error here
-                message($error, 'Could not connect: ' . mysqli_error());
+                message($error, 'Could not connect: ' . mysqli_error($GLOBALS['dbh']));
                 # php >= 5.2.0 provides additional phperror which could give more information about the last mysql error
                 if ( function_exists('error_get_last') ){
                     $php_error = error_get_last();
@@ -410,16 +409,16 @@ if ($step == 0){
                 }
             }
         }else{
-            $dbh = FALSE;
-            message($error, '<b>mysql_connect</b> not found, you must install PHP with mysql support!');
+            $GLOBALS['dbh'] = FALSE;
+            message($error, '<b>mysqli_connect</b> not found, you must install PHP with mysql support!');
         }
 
-        if (!$dbh){
-            echo table_row_check('Connect to DB', FALSE );
+        if (!$GLOBALS['dbh']){
+            echo table_row_check('... connect to DB', FALSE );
             $msg_error = NConf_DEBUG::show_debug('ERROR');
             echo table_row_description('', "<br>$msg_error");
         }else{
-            echo table_row_check('connect to mysql', TRUE ); 
+            echo table_row_check('... connect to MySQL', TRUE ); 
             $db_selected = TRUE; //@mysql_select_db(check_session_value("DBNAME"));
             if ($db_selected ){
 
@@ -443,22 +442,22 @@ if ($step == 0){
                     return $InnoDB_support;
                 }
                 $InnoDB_support = InnoDB_support();
-                echo table_row_check('InnoDB support', $InnoDB_support);
+                echo table_row_check('... InnoDB support', $InnoDB_support);
 
 
                 # DB selected, try to create tables
-                echo table_row_check('access database', TRUE ); 
+                echo table_row_check('... database permissions', TRUE ); 
                 
                 # check if tables are set ....
                 //$query = 'SHOW TABLES FROM '.check_session_value("DBNAME");
                 $query = 'SELECT fk_id_item FROM ItemLinks LIMIT 1;';
-                $result = mysqli_query($dbh, $query);
+                $result = mysqli_query($GLOBALS['dbh'], $query);
                 if ($result){
                     # say that db is done, go to next step
-                    echo table_row_check('tables were already created', TRUE );
+                    echo table_row_check('... tables already created', TRUE );
                     # check if nconf already is installed
                     if ( file_exists('config/nconf.php') ){
-                        echo table_row_check('NConf config files check', FALSE );
+                        echo table_row_check('... NConf config files check', FALSE );
                         echo '</table><table width="450">';
                         echo table_row_description('', '<br>If you previously installed an older version of NConf, please use the <b><a href="UPDATE.php">UPDATE</a></b> function!');
                     }else{
@@ -483,7 +482,7 @@ if ($step == 0){
                         $result = parse_mysql_dump($install_file);
                         if (!$result){
                             echo table_row_check('create tables', FALSE );
-                            echo table_row_description('', 'Error: '.mysqli_error() );
+                            echo table_row_description('', 'Error: '.mysqli_error($GLOBALS['dbh']) );
                         }else{
                             echo table_row_check('create tables', TRUE );
                             # say that next step is the connect db part
@@ -500,7 +499,7 @@ if ($step == 0){
                 echo table_row_check('access database', FALSE ); 
                 # try to create DB
                 $query = 'CREATE DATABASE '.check_session_value("DBNAME").';';
-                $result = mysqli_query($dbh, $query);
+                $result = mysqli_query($GLOBALS['dbh'], $query);
                 if ($result){
                     echo table_row_check('created database', TRUE );
                 }else{
@@ -541,7 +540,7 @@ if ($step == 0){
     echo table_row_description("WARNING", "Please do not use '::' (2 colons) in passwords! You will not be able to login otherwise!<br>'::' is used as delimiter.", "none");
     
     echo NConf_HTML::limit_space(
-            NConf_HTML::show_highlight('Info', 'For more authentication setups, please reffer to the online documentation!'
+            NConf_HTML::show_highlight('Info', 'For more authentication setups, please refer to the online documentation!'
                                              . '<br>Just finish your installation and then have a look here --> <a href="http://nconf.org/dokuwiki/doku.php?do=search&id=Authentication+specific+options" target="_blank">Authentication @ nconf.org</a>')
         );
     ?>

@@ -87,7 +87,7 @@ $rResult = mysqli_query( $dbh, $sQuery ) or die('Query: '.$sQuery.'<br><br>'.mys
 $sQuery = "
     SELECT FOUND_ROWS()
 ";
-$rResultFilterTotal = mysqli_query( $dbh, $sQuery ) or die(mysqli_error());
+$rResultFilterTotal = mysqli_query( $dbh, $sQuery ) or die(mysqli_error($GLOBALS['dbh']));
 $aResultFilterTotal = mysqli_fetch_array($rResultFilterTotal);
 $iFilteredTotal = $aResultFilterTotal[0];
 
@@ -97,7 +97,7 @@ $sQuery = "
     WHERE "
     . $basic_query;
 
-$rResultTotal = mysqli_query( $dbh, $sQuery ) or die(mysqli_error());
+$rResultTotal = mysqli_query( $dbh, $sQuery ) or die(mysqli_error($GLOBALS['dbh']));
 $aResultTotal = mysqli_fetch_array($rResultTotal);
 $iTotal = $aResultTotal[0];
 
