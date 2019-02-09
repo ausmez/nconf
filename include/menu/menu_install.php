@@ -7,9 +7,9 @@ echo '
                 <tr>
                     <td>';
                         if ( isset($step) AND $step == 0 ){
-                            echo '<div class="link_with_tag link_with_tag_active">pre-install check</div>';
+                            echo '<div class="link_with_tag link_with_tag_active">Pre-Install Check</div>';
                         }else{
-                            echo '<div class="link_with_tag">pre-install check</div>';
+                            echo '<div class="link_with_tag">Pre-Install Check</div>';
                         }
 
                         # steps:
@@ -20,7 +20,7 @@ echo '
                             }else{
                                 echo "link_with_tag";
                             }
-                            echo '">step '.($i).'</div>';
+                            echo '">Step '.($i).'</div>';
                         }
                         echo '
                     </td>
@@ -39,7 +39,7 @@ echo '
                 <tr>
                     <td>
                         <div class="link_with_tag">
-                            <a href="INSTALL.php?logout=1" >restart installation</a>
+                            <a href="INSTALL.php?logout=1">Restart Installation</a>
                         </div>
                     </td>
                 </tr>

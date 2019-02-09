@@ -35,7 +35,9 @@ require_once(NCONFDIR.'/config/mysql.php');
 #
 # mysql Initiate connection
 #
-$GLOBALS['dbh'] = mysqli_connect(DBHOST,DBUSER,DBPASS,DBNAME);
+if (function_exists('mysqli_connect')) {
+	$GLOBALS['dbh'] = mysqli_connect(DBHOST,DBUSER,DBPASS,DBNAME);
+}
 
 #
 # some misc gui things

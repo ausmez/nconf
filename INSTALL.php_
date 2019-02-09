@@ -342,7 +342,7 @@ if ($step == 0){
     echo table_row_description("Welcome to NConf setup", 'This will install NConf version "'.VERSION_NUMBER.'"<br>The pre-installation check will test your system for NConf.');
     echo '</table>';
 
-
+    $reqs_met = TRUE;
     ###
     # WARN if update is not stable version
     if ( constant("VERSION_NOT_FINAL_WARNING") !== ''){
@@ -354,58 +354,75 @@ if ($step == 0){
 
 
     # shorter table for this step
-    echo '<table width="240">';
+    echo '<table width="300">';
     echo table_row_description("Requirements", '');
-    echo table_row_check('PHP 5.0 (or higher) -> '.phpversion(), version_compare(phpversion(), '5.0', '>=') );
+    $php_version = phpversion();
+    echo table_row_check('PHP 5.0 (or higher) -> '.$php_version, version_compare($php_version, '5.0', '>=') );
+    if (!version_compare($php_version, '5.0', '>=')) {
+    	$reqs_met = FALSE;
+    }
 
     # mysql version check
     $mysql_status = find_SQL_Version();
     if ($mysql_status == "UNKNOWN"){
         echo table_row_check('MySQL 5.0.2 (or higher)', "UNKNOWN");
+        $reqs_met = FALSE;
     }else{
         echo table_row_check('MySQL 5.0.2 (or higher) -> '.$mysql_status, version_compare($mysql_status, '5.0.2', '>=') );
+        if (!version_compare($mysql_status, '5.0.2', '>=')) {
+        	$reqs_met = FALSE;
+        }
     }
 
     # php-mysql support
     $mysql_status = function_exists('mysqli_connect');
-    if (!$mysql_status) message ($error, 'Could not find function "mysqli_connect()"<br>You must configure PHP with mysql support.');
+    if (!$mysql_status)	{
+    	message ($error, 'Could not find function "mysqli_connect()"<br>You must configure PHP with mysql support.');
+    	$reqs_met = FALSE;
+    }
     echo table_row_check('PHP-MySQL support', $mysql_status);
 
     # perl version
     $perl_status = find_PERL_Version();
     if ($perl_status == "UNKNOWN"){
         echo table_row_check('Perl 5.6 (or higher)', "UNKNOWN");
+        $reqs_met = FALSE;
     }else{
         echo table_row_check('Perl 5.6 (or higher) -> '.$perl_status, version_compare($perl_status, '5.6', '>=') );
+	    if (!version_compare($perl_status, '5.6', '>=')) {
+	    	$reqs_met = FALSE;
+	    }
     }
 
 
 }elseif ($step == 1){
-        echo table_row_description("MySQL database configuration", 'Please enter the DB information for NConf installation.');
-        echo table_row_text("DBHOST", "localhost", "DB server");
-        echo table_row_text("DBNAME", "database_name", "DB name");
-        echo table_row_text("DBUSER", "user_name", "DB user name");
-        echo table_row_text("DBPASS", "password", "DB user password", "password");
+    echo table_row_description("MySQL database configuration", 'Please enter the DB information for NConf installation.');
+    echo table_row_text("DBHOST", "localhost", "DB server");
+    echo table_row_text("DBNAME", "database_name", "DB name");
+    echo table_row_text("DBUSER", "user_name", "DB user name");
+    echo table_row_text("DBPASS", "password", "DB user password", "password");
 	echo '<tr><td><br></td></tr>';
 
-        # shorter table for this step
-        echo '</table>';
-        # say that next step is the connect db part
-        echo '<input type=hidden name="db_status" value="connect">';
+    # shorter table for this step
+    echo '</table>';
+    # say that next step is the connect db part
+    echo '<input type=hidden name="db_status" value="connect">';
 
-        echo '<table width="200">';
+    echo '<table width="300">';
+
+    $reqs_met = TRUE;
         
-    if ($db_check !== FALSE ){
+    if ($db_check){
         echo table_row_description('Checks', '');
         if (function_exists('mysqli_connect')){
             $GLOBALS['dbh'] = @mysqli_connect(check_session_value("DBHOST"),check_session_value("DBUSER"),check_session_value("DBPASS"),check_session_value("DBNAME"));
             if (!$GLOBALS['dbh']){
-                # unfortunately mysql_error wont give information about last error here
-                message($error, 'Could not connect: ' . mysqli_error($GLOBALS['dbh']));
                 # php >= 5.2.0 provides additional phperror which could give more information about the last mysql error
                 if ( function_exists('error_get_last') ){
                     $php_error = error_get_last();
                     message($error, $php_error["message"]);
+                } else {
+                	message($error, 'Could not connect. Please check the web server error log');
                 }
             }
         }else{
@@ -414,13 +431,13 @@ if ($step == 0){
         }
 
         if (!$GLOBALS['dbh']){
-            echo table_row_check('... connect to DB', FALSE );
+            echo table_row_check('... Connect to DB', FALSE );
             $msg_error = NConf_DEBUG::show_debug('ERROR');
             echo table_row_description('', "<br>$msg_error");
         }else{
-            echo table_row_check('... connect to MySQL', TRUE ); 
+            echo table_row_check('... Connect to MySQL', TRUE ); 
             $db_selected = TRUE; //@mysql_select_db(check_session_value("DBNAME"));
-            if ($db_selected ){
+            if ($db_selected){
 
                 # InnoDB support
                 function InnoDB_support(){
@@ -446,7 +463,7 @@ if ($step == 0){
 
 
                 # DB selected, try to create tables
-                echo table_row_check('... database permissions', TRUE ); 
+                echo table_row_check('... Database permissions', TRUE ); 
                 
                 # check if tables are set ....
                 //$query = 'SHOW TABLES FROM '.check_session_value("DBNAME");
@@ -454,12 +471,13 @@ if ($step == 0){
                 $result = mysqli_query($GLOBALS['dbh'], $query);
                 if ($result){
                     # say that db is done, go to next step
-                    echo table_row_check('... tables already created', TRUE );
+                    echo table_row_check('... Tables already exist', TRUE );
                     # check if nconf already is installed
                     if ( file_exists('config/nconf.php') ){
                         echo table_row_check('... NConf config files check', FALSE );
                         echo '</table><table width="450">';
                         echo table_row_description('', '<br>If you previously installed an older version of NConf, please use the <b><a href="UPDATE.php">UPDATE</a></b> function!');
+                        $reqs_met = FALSE;
                     }else{
                         echo '</table><table width="450">';
                         echo table_row_description('', '<input type=hidden name="db_status" value="ok">');
@@ -481,10 +499,10 @@ if ($step == 0){
                         # try create tables
                         $result = parse_mysql_dump($install_file);
                         if (!$result){
-                            echo table_row_check('create tables', FALSE );
+                            echo table_row_check('... Creating tables', FALSE );
                             echo table_row_description('', 'Error: '.mysqli_error($GLOBALS['dbh']) );
                         }else{
-                            echo table_row_check('create tables', TRUE );
+                            echo table_row_check('... Creating tables', TRUE );
                             # say that next step is the connect db part
                             echo table_row_description('', '<input type=hidden name="db_status" value="ok">');
                         }
@@ -511,6 +529,7 @@ if ($step == 0){
     }
 
 }elseif ($step == 2){
+	$reqs_met = TRUE;
     # some checks
     $nconfdir = $_SERVER["SCRIPT_FILENAME"];
     $nconfdir = str_replace("/INSTALL.php", "", $nconfdir);
@@ -518,9 +537,7 @@ if ($step == 0){
     # nagios bin
     $nagios_bin = $nconfdir."/bin/nagios";
 
-
     $templates = getDirectoryTree("design_templates");
-
 
     # html content
     echo table_row_description("General configuration", 'Please define basic settings here.');
@@ -528,11 +545,8 @@ if ($step == 0){
     echo table_row_text("NAGIOS_BIN", $nagios_bin, "Path to the Nagios / Icinga binary");
     echo table_row_select("TEMPLATE_DIR", $templates, "nconf_fresh", "choose a template (color schema)");
 
-
-
-
-
 }elseif ($step == 3){
+	$reqs_met = TRUE;
     echo table_row_description("Authentication configuration", 'Choose if you want NConf to prompt for a login. <br>If yes, choose how you want to authenticate the users.');
     echo table_row_select("AUTH_ENABLED", array("TRUE" => "1", "FALSE" => "0"), "0", "Do you want NConf to authenticate users?", '', 1);
     echo table_row_select("AUTH_TYPE", array("file" => "file"), "file", "How do you want to authenticate?", '', 1);
@@ -694,7 +708,8 @@ echo '<table>
                     echo '<input type="button" value="Finish" name="submit" align="middle" onclick="location.href=\'index.php\'">&nbsp;&nbsp;';
                 }
                 if ($step != 4){
-                    echo '<input type="Submit" value="Next" name="submit" align="middle">&nbsp;&nbsp;';
+                    //var_dump($GLOBALS);
+                    echo '<input type="Submit" value="Next" name="submit" align="middle"'.(($reqs_met) ? '' : 'disabled').'>&nbsp;&nbsp;';
                 }
                 echo'
                 <!--<input type="Reset" value="Reset">-->

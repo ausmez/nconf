@@ -290,7 +290,9 @@ $NConf_PERMISSIONS = new NConf_PERMISSIONS;
     ###
     ## Page authorisation check
     ###
-    require_once(NCONFDIR.'/include/access_rules.php');
+    if (!strstr($_SERVER['SCRIPT_NAME'], "INSTALL.php")) {
+        require_once(NCONFDIR.'/include/access_rules.php');
+    }
 
     # Show page or EXIT the script ? (based on above auth-checks)
     if ( $NConf_PERMISSIONS->checkPageAccess() === TRUE AND $NConf_PERMISSIONS->checkIdAuthorization() !== FALSE){
